@@ -1,0 +1,24 @@
+[project]
+name = "backup-remoto-s3-criptografado"
+version = "0.1.0"
+description = "Backup cifrado (AES-256-GCM) de diretorio local em bucket S3 simulado, com rotacao e verificacao de hash."
+requires-python = ">=3.10"
+authors = [{ name = "Kelvin Oliveira" }]
+license = { text = "MIT" }
+dependencies = [
+    "boto3>=1.28.0",
+    "cryptography>=42.0.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0.0", "moto>=5.0.0"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+backup-s3 = "backup_s3.cli:main"
