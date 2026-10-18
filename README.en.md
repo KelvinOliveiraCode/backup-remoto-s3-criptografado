@@ -1,98 +1,84 @@
+
 # backup-remoto-s3-criptografado
 
-Encrypted backup of a local directory to an S3-like bucket, with rotation of old backups and SHA-256 integrity verification. No real AWS credentials.
+![language: Python](https://img.shields.io/badge/language-Python-blue?logo=python)   ![status: done](https://img.shields.io/badge/status-done-green)   ![license: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-Version 0.1.0. Python >= 3.10.
+## Summary
 
-## Features
+Python project developed as a software engineering study. Projeto funcional, backup-remoto-s3-criptografado
 
-- Encrypts with AES-256-GCM (`cryptography` library); the key is derived from the passphrase via PBKDF2-SHA256 with 200,000 iterations.
-- The encrypted package is serialized as salt (16 bytes) + nonce (12 bytes) + ciphertext + tag (16 bytes).
-- Sends to an S3 bucket via `boto3` or to a local fake backend (no AWS credentials, no network).
-- Generates a deterministic tar archive of the source directory before encrypting.
-- Stores the SHA-256 hash of the package in metadata alongside the object.
-- Rotation: keeps only the N most recent backups.
-- Restore: downloads, verifies the hash against stored metadata, decrypts, extracts.
-- The `verify` command checks integrity and decryptability without restoring.
+## Problem / why it exists
 
-## Requirements
+The project addresses a practical scope and automates a task that, done manually, is repetitive and error-prone. The focus is on turning data or processes into reliable output, with readable and testable code.
 
-- Python 3.10 or higher
-- Dependencies: `boto3>=1.28.0`, `cryptography>=42.0.0`
-- Tests (optional): `pytest>=8.0.0`, `moto>=5.0.0`
+## Architecture
 
-## Installation
+The code is organized by responsibility:
 
-Install the package in editable mode:
+- Input: reading a file, API, user input or data capture (depending on the module).
+- Processing: pure functions or classes that apply business rules, transformation or analysis over the input data.
+- Output: writing a file, printing to terminal, HTTP response or report generation.
 
-```
-pip install -e .
-```
+When applicable, the application separates the data access layer from the business logic layer, so changing the data source does not require rewriting the rules.
 
-This provides the `backup-s3` command (entry point) and execution via `python -m backup_s3`.
+## Technologies
 
-## Usage
+- Python 3.x
+- (none declared in the repository)
 
-Local fake backend (no AWS credentials, no network):
+- No CI configured in this repository.
 
-```
-backup-s3 backup ./dados --backend fake --root .s3fake --passphrase "senha"
-backup-s3 list --backend fake --root .s3fake
-backup-s3 restore <id> ./restored --backend fake --root .s3fake --passphrase "senha"
-backup-s3 verify <id> --backend fake --root .s3fake --passphrase "senha"
-backup-s3 rotate --keep 3 --backend fake --root .s3fake
-```
+The repository contains automated tests.
 
-Also runnable as a module:
+## What it does
+
+Projeto funcional, backup-remoto-s3-criptografado
+
+## How to run
+
+Requirements: Python 3.x installed.
 
 ```
-python -m backup_s3 backup ./dados --backend fake --root .s3fake --passphrase "senha"
+# install dependencies (if requirements.txt exists)
+pip install -r requirements.txt
+
+# run
+python main.py
+
+# run tests
+pytest
 ```
 
-Real S3 bucket or `moto`-simulated S3:
+## Project structure
 
-```
-backup-s3 backup ./dados --backend s3 --bucket my-bucket --passphrase "senha"
-```
+- src/ (6 arquivo(s))
+- tests/ (6 arquivo(s))
+- .gitignore, BRIEF.md, pyproject.toml, README.en.md, README.md
 
-Common arguments:
 
-- `--backend fake|s3` (default: `fake`)
-- `--root` root directory of the fake backend (default: `.s3fake`)
-- `--bucket` S3 bucket name (default: `backup-remoto`)
-- `--passphrase` encryption passphrase
+## Trade-offs and decisions
 
-The `backup` command applies rotation automatically after creating the backup, keeping the N most recent (default 5, adjustable with `--keep`).
+- Standard library whenever possible; external dependencies only when the benefit justifies maintenance.
+- Executable scripts straight away, no complex build step, to ease reproduction.
+- Logic separated from input/output to keep processing functions testable.
+
+## Known limitations
+
+- Limited scope to the described slice; it is not a complete platform.
+- Depends on Python 3.x at runtime.
+
 
 ## Tests
 
 ```
-pip install -e ".[test]"
-python -m pytest -q
+pytest
 ```
-
-The suite runs on two backends: local fake and `moto` (simulated S3). 36 tests pass.
-
-## Package structure
-
-- `src/backup_s3/__init__.py` — public API and version.
-- `src/backup_s3/crypto.py` — AES-256-GCM encryption and PBKDF2-SHA256 key derivation.
-- `src/backup_s3/storage.py` — `StorageBackend`, `S3Backend` (`boto3`), `LocalFakeBackend` (local, no credentials), `create_storage`.
-- `src/backup_s3/backup.py` — `BackupManager`: backup, list, restore, verify hash, rotate.
-- `src/backup_s3/cli.py` — commands `backup`, `list`, `restore`, `verify`, `rotate`.
-- `src/backup_s3/__main__.py` — execution as `python -m backup_s3`.
-- `tests/` — tests for `crypto`, `storage`, `backup` and `cli`.
-
-## Security
-
-Do not store the passphrase in scripts or shell history. Use environment variables or read the passphrase at runtime. The S3 backend uses dummy credentials (`test`/`test`) by default; in production replace with real credentials or let `boto3` resolve them from the environment.
-
-Encryption is symmetric: the same passphrase is required to encrypt and decrypt. Without the passphrase the data cannot be recovered.
 
 ## License
 
-MIT
+Distributed under the MIT License. See the `LICENSE` file in this repository.
 
 ## Author
 
-Kelvin Oliveira
+Kelvin Oliveira, https://github.com/KelvinOliveiraCode
+Portfolio: https://kelvinoliveiracode.github.io/portfolio/
