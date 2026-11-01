@@ -1,118 +1,106 @@
 # backup-remoto-s3-criptografado
 
-<div align="center">
-
 [English](README.en.md) · **Português (Brasil)**
 
-</div>
-
-[![Python 3](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/) [![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikit-learn)](https://scikit-learn.org/) [![pandas](https://img.shields.io/badge/pandas-150458?style=flat-square&logo=pandas)](https://pandas.pydata.org/) [![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest)](https://docs.pytest.org/) [![MIT License](https://img.shields.io/badge/License-MIT-f4c430?style=flat-square)](LICENSE)
-
-### Projeto funcional ,  backup-remoto-s3-criptografado
-
----
+[![Python 3](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](#) [![boto3](https://img.shields.io/badge/boto3-1.28%2B-E25444?style=flat-square&logo=amazon-aws)](#) [![cryptography](https://img.shields.io/badge/cryptography-42%2B-3776AB?style=flat-square&logo=python)](#) [![pytest](https://img.shields.io/badge/pytest-36%20testes-0A9EDC?style=flat-square&logo=pytest)](#) [![MIT License](https://img.shields.io/badge/License-MIT-f4c430?style=flat-square)](LICENSE)
 
 ## O que é
 
-Projeto funcional ,  backup-remoto-s3-criptografado
+**Backup local → armazenamento remoto com criptografia client-side**: compacta uma pasta em **ZIP**, cifra o pacote (crypto próprio com derivação de chave por passphrase), envia para **S3** (boto3) ou para um **backend fake local** (treino/testes sem AWS), **rotaciona** os backups antigos (`--keep`) e **verifica integridade** no restauro. Testes usam **moto** (S3 simulado). É um laboratório educacional de backup seguro.
 
----
+## Status
 
-## Início Rápido
+Laboratório educacional funcional e testado (36 testes).
 
-```bash
-# Clone e entre
-git clone https://github.com/KelvinOliveiraCode/<repo>.git
-cd <repo>
+## Funcionalidades
 
-# Instale dependências
-# Nenhum requirements.txt detectado
+- **Criptografia** (`crypto.py`): `encrypt`/`decrypt` com derivação de chave por passphrase (salt aleatório); `EncryptedPackage` empacota salt+dados; `CryptoError` em falhas.
+- **Backup** (`backup.py`): `BackupManager` — cria o ZIP (`_make_archive`), cifra, envia e registra `BackupInfo`; `IntegrityError` na verificação.
+- **Armazenamento plugável** (`storage.py`): `StorageBackend` (ABC) com `S3Backend` (boto3) e `LocalFakeBackend`; `create_storage(backend="fake"|"s3")`.
+- **Rotação** (`rotate --keep N`): mantém apenas os N mais recentes.
+- **Verificação** (`verify <id>`): hash conferido no restauro.
+- **CLI** (`cli.py`, prog `backup-s3`): `backup`, `list`, `restore`, `verify`, `rotate`.
 
-# Execute o projeto
-python main.py
+## Arquitetura
 
-# Execute os testes
-pytest
+Pacote `backup_s3` com camadas separadas: `backup` (orquestra), `crypto` (cifra), `storage` (transporte plugável). O backend fake mantém a mesma interface do S3, o que permite testes completos sem rede.
+
+```mermaid
+flowchart LR
+    SRC[pasta origem] --> ZIP[_make_archive - ZIP]
+    ZIP --> ENC[encrypt - passphrase]
+    ENC --> ST[StorageBackend]
+    ST --> S3b[S3Backend - boto3]
+    ST --> FK[LocalFakeBackend - teste]
+    ENC --> RT[rotate - keep N]
+    RT --> FS[list/restore/verify]
+    CLI[backup-s3] --> ENC & FS
 ```
 
-## Como funciona
+## Stack
 
-Estrutura limpa e modular com separação de responsabilidades.
+- Python ≥ 3.10
+- boto3 ≥ 1.28, cryptography ≥ 42.0
+- moto + pytest (testes)
 
----
+## Estrutura do repositório
 
-## Capacidades
+```
+backup-remoto-s3-criptografado/
+├── pyproject.toml · BRIEF.md
+├── src/backup_s3/
+│   ├── backup.py   # BackupManager/zip/integridade
+│   ├── crypto.py   # cifração por passphrase
+│   ├── storage.py  # S3Backend + LocalFakeBackend
+│   └── cli.py · __main__.py
+├── tests/          # 36 testes (moto: S3 simulado)
+└── LICENSE         # MIT
+```
 
-| Capacidade | Descrição |
-|------------|-------------|
-| Carregamento de Dados | Auto-download do TensorFlow creditcard.csv (284k transações) com cache local |
-| EDA e Visualização | Distribuição de classes, histogramas de Amount, heatmaps de correlação (matplotlib/seaborn) |
-| Pré-processamento | RobustScaler em Amount/Time, split estratificado, remoção de duplicatas |
-| Balanceamento | SMOTE oversampling (fallback: class_weight="balanced") |
-| Modelagem | LogisticRegression, RandomForest, ExtraTrees com RandomizedSearchCV (StratifiedKFold) |
-| Métricas | Accuracy, Precision, Recall, F1, ROC AUC, Specificity, Confusion Matrix |
-| Seleção | Score ponderado: Recall 40% + F1 30% + Precision 20% + Accuracy 10% |
-| Persistência | Serialização joblib para modelo, scaler e resultados completos |
+## Pré-requisitos e instalação
 
+```bash
+pip install -e .
+```
 
----
+Para o S3 real: credenciais AWS no ambiente (as mesmas do boto3).
 
+## Como executar
 
+```bash
+# backend fake (treino/local, sem rede)
+backup-s3 backup ./dados --backend fake --root .s3fake --passphrase "senha"
+backup-s3 list --backend fake --root .s3fake
+backup-s3 restore <id> ./restaurado --backend fake --root .s3fake --passphrase "senha"
+backup-s3 verify <id> --backend fake --root .s3fake --passphrase "senha"
+backup-s3 rotate --keep 3 --backend fake --root .s3fake
+```
+Para produção: troque `--backend fake` por `--backend s3 <bucket>`.
 
----
+## Testes e qualidade
 
-## Perguntas Frequentes
+Comando real (verificado pelo agente — moto instalado):
 
-<details>
-<summary><strong>O que é este projeto?</strong></summary>
+```bash
+PYTHONPATH=src python -m pytest tests/
+# 36 passed
+```
 
-Um estudo/projeto em Python demonstrando conceitos fundamentais.
+## Decisões técnicas e trade-offs
 
-</details>
+- **Backend plugável (S3 ou fake)**: toda a suite roda sem AWS nem rede.
+- **Cifração client-side antes do upload**: o armazenamento nunca vê os dados em claro.
+- **Verificação de hash no restauro**: o `verify` confere a integridade antes de declarar OK.
 
-<details>
-<summary><strong>Como executar?</strong></summary>
+## Limitações conhecidas e roadmap
 
-Veja [Início Rápido](#início-rápido) para comandos copiáveis.
+- Derivação de chave própria (educacional) — para produção, prefira esquemas auditados (age, restic, gpg).
+- Backup completo por execução (sem incremental).
 
-</details>
+## Processo de desenvolvimento
 
-<details>
-<summary><strong>Há testes?</strong></summary>
+Projeto individual de Kelvin Oliveira, construído com agentes de IA orquestrados e revisado pelo autor.
 
-Nenhum teste automatizado neste repositório.
+## Licença e autor
 
-</details>
-
-<details>
-<summary><strong>Posso usar em produção?</strong></summary>
-
-Este é um **projeto de estudo/portfólio**. Revise e endureça (auth, persistência, monitoramento, etc.) antes de usar em produção.
-
-</details>
-
-
-
----
-
-## Documentação
-
-- **Código-Fonte** ,  Navegue pelo diretório `src/` para detalhes de implementação
-- **Referência da API** ,  Docstrings inline + type hints
-- **Diagrama de Arquitetura** ,  Veja [architecture.mermaid](docs/architecture.mermaid) (se presente)
-- **Changelog** ,  [CHANGELOG.md](CHANGELOG.md) (se presente)
-- **Contribuindo** ,  [CONTRIBUTING.md](CONTRIBUTING.md) (se presente)
-
-## Licença
-
-[MIT](LICENSE) ,  Kelvin Oliveira
-
----
-
-<div align="center">
-
-**Construído com** · Python 3 + scikit-learn + pandas
-
-**Autor** · [Kelvin Oliveira](https://github.com/KelvinOliveiraCode) · [Portfolio](https://kelvinoliveiracode.github.io/portfolio/)
-
-</div>
+MIT — Copyright (c) 2026 Kelvin Rebelo de Oliveira. Autor: [Kelvin Oliveira](https://github.com/KelvinOliveiraCode) · [Portfólio](https://kelvinoliveiracode.github.io/portfolio/)
